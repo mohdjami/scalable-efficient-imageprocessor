@@ -15,8 +15,13 @@ import {
 } from "./process.js";
 const upload = multer({ dest: "uploads/" });
 
+app.get("/", (req, res) => {
+  res.send("API is Working");
+  res.send("1: '/upload-redis to start uploading to in memory database");
+});
 //this will directly pull the images and process the data at the same time and then send response
-app.get("/", async (req, res) => {
+
+app.get("/process-all-local", async (req, res) => {
   const response = await axios.get(
     "https://be.platform.simplifii.com/api/v1/custom/claim_images"
   );
