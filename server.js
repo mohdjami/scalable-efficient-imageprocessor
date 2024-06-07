@@ -8,7 +8,11 @@ import BlurryDetector from "./sharp.js";
 import multer from "multer";
 import { converter } from "./converter.js";
 import { checkReadability } from "./readability-checker.js";
-import { processSingleImage, processSingleImageLocally } from "./process.js";
+import {
+  processSingleImage,
+  processSingleImageLocally,
+  redisWorker,
+} from "./process.js";
 const upload = multer({ dest: "uploads/" });
 
 //this will directly pull the images and process the data at the same time and then send response
@@ -38,7 +42,6 @@ app.get("/", async (req, res) => {
             await fs.mkdir(newFolder);
           }
 
-          // Download the image and save it to the new path
           const response = await axios.get(data.url, {
             responseType: "arraybuffer",
           });
@@ -84,6 +87,10 @@ app.get("/upload-redis", async (req, res) => {
   res.send(batches);
 });
 
+app.get("/start-worker", async (req, res) => {
+  await redisWorker();
+  res.send("success");
+});
 app.post("/upload-single-cloud", async (req, res) => {
   const { url } = req.body;
   await processSingleImage(url);

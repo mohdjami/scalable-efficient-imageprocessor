@@ -7,6 +7,7 @@ import path from "path";
 import BlurryDetector from "./sharp.js";
 import axios from "axios";
 import { workerData } from "worker_threads";
+
 export async function processImageBatch(batch) {
   try {
     const clear_list = "CLEAR";
@@ -120,8 +121,9 @@ export async function redisWorker() {
     const batch = await redisClient.lrange(imageQueue, 0, batchSize - 1);
     if (batch.length === 0) {
       console.log("No images in the queue, waiting...");
+
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      continue;
+      break;
     }
     console.log(batch);
     console.log(`Dequeued batch of ${batch.length}  images`);
@@ -134,6 +136,7 @@ export async function redisWorker() {
     // Process the batch of images
     await processImageBatch(batch);
   }
+  return "Images has been processed";
 }
 
 await redisWorker();
