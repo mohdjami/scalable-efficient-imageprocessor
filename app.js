@@ -1,7 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
-import app from "./app.js";
 import fs from "fs/promises";
 import path from "path";
 import { redisClient } from "./redis.js";

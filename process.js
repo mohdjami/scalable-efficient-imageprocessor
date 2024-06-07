@@ -139,4 +139,4 @@ export async function redisWorker() {
   return "Images has been processed";
 }
 
-await redisWorker();
+// await redisWorker();
