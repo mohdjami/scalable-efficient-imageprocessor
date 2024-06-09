@@ -100,23 +100,24 @@ export async function processSingleImage(url) {
     const txt = await converter(url);
     const score = await checkReadability(txt);
     const pipeline = redisClient.pipeline();
-
+    console.log(url, score);
     if (score > 20) {
       // const res = await produce(clear_list, url);
       pipeline.rpush("CLEAR", JSON.stringify(url));
       await pipeline.exec();
       console.log("clear");
+      return "CLEAR";
     } else {
       // await produce(blur_list, url);
       pipeline.rpush("BLUR", JSON.stringify(url));
       await pipeline.exec();
+      return "BLUR";
     }
-
-    console.log(url, score);
   } catch (error) {
     console.log(error);
   }
 }
+
 export async function processImagesUploadRedis(batch) {
   console.log(batch, "started");
   await Promise.all(
@@ -143,17 +144,16 @@ export async function processImagesUploadRedis(batch) {
   );
 }
 
-export async function redisWorker() {
+export async function redisWorker(start) {
   const imageQueue = "IMAGES";
   const batchSize = 10;
   console.log("redisWorker start");
-  while (true) {
+  while (start) {
     const queueLength = await redisClient.llen(imageQueue);
     console.log(`Queue length: ${queueLength}`);
     const batch = await redisClient.lrange(imageQueue, 0, batchSize - 1);
     if (batch.length === 0) {
       console.log("No images in the queue, waiting...");
-
       await new Promise((resolve) => setTimeout(resolve, 5000));
       break;
     }
@@ -168,7 +168,7 @@ export async function redisWorker() {
     // Process the batch of images
     await processImagesUploadRedis(batch);
   }
-  return "Images has been processed";
+  return "Worker stopped";
 }
 
 // await redisWorker();

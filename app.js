@@ -29,12 +29,11 @@ console.log(process.env.JAMI);
 
 app.get("/", (req, res) => {
   res.send("API is Working");
-  res.send("1: '/upload-redis to start uploading to in memory database");
 });
 
 //this will directly pull the images and process the data at the same time and then send response
 
-app.get("/vercel", upload.single("file"), async (req, res) => {
+app.post("/vercel", upload.single("file"), async (req, res) => {
   const fileData = {
     path: req.file.path,
     originalName: req.file.originalname,
@@ -49,51 +48,11 @@ app.get("/vercel", upload.single("file"), async (req, res) => {
   res.send(blob);
 });
 
-app.get("/process-all-local", async (req, res) => {
-  const response = await axios.get(
-    "https://be.platform.simplifii.com/api/v1/custom/claim_images"
-  );
-  const data = response.data.response.data;
-  const batchSize = 10;
-  const batches = [];
-  for (let i = 0; i < data.length; i += batchSize) {
-    batches.push(data.slice(i, i + batchSize));
-  }
-  const promises = batches.map(async (batch) => {
-    try {
-      await Promise.all(
-        batch.map(async (data) => {
-          const txt = await converter(data.url);
-          const score = await checkReadability(txt);
-          console.log(data.url, score);
-          const newFolder = score > 30 ? "clear_images" : "blur_images";
-          const newPath = path.join(newFolder, data.url.split("/").pop());
-
-          try {
-            await fs.access(newFolder);
-          } catch {
-            await fs.mkdir(newFolder);
-          }
-
-          const response = await axios.get(data.url, {
-            responseType: "arraybuffer",
-          });
-          await fs.writeFile(newPath, response.data);
-        })
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  });
-  await Promise.all(promises);
-  res.send("success");
-});
-
 //This will load all the images to an in memory database like redis for faster data retrieval and reduce my local pc resources.
-app.get("/upload-redis", async (req, res) => {
-  const response = await axios.get(
-    "https://be.platform.simplifii.com/api/v1/custom/claim_images"
-  );
+app.post("/upload-redis", async (req, res) => {
+  const { url } = req.body;
+  console.log(url);
+  const response = await axios.get(url);
   const data = response.data.response.data;
   const imageData = "IMAGES";
   const batchSize = 10;
@@ -101,8 +60,11 @@ app.get("/upload-redis", async (req, res) => {
   for (let i = 0; i < data.length; i += batchSize) {
     batches.push(data.slice(i, i + batchSize));
   }
-  //Now I have arrray of 10 10 urls in batches array
-  //Now I want to process each batch and save it to redis
+
+  // Set headers for SSE
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
   for (const batch of batches) {
     const pipeline = redisClient.pipeline();
@@ -117,19 +79,115 @@ app.get("/upload-redis", async (req, res) => {
   }
 
   res.end();
-  res.send(batches);
 });
 
-app.get("/start-worker", async (req, res) => {
-  await redisWorker();
-  res.send("success");
+//GET route to start the worker process
+app.post("/start-worker", async (req, res) => {
+  try {
+    await redisWorker(true);
+    res.send("Worker started");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to start worker");
+  }
 });
 
-app.post("/upload-single-cloud", async (req, res) => {
+app.post("/stop-worker", async (req, res) => {
+  try {
+    await redisWorker(false);
+    console.log("Worker stopped");
+    res.send("Worker stopped");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to stop worker");
+  }
+});
+//POST roue to process single image by url
+app.post("/process-single-cloud", async (req, res) => {
   const { url } = req.body;
-  await processSingleImage(url);
-  res.send("success");
+  const result = await processSingleImage(url);
+  res.send(result);
 });
+
+//GET route for getting clear images
+app.get("/clear", async (req, res) => {
+  const imageQueue = "CLEAR";
+  console.log("redisWorker start");
+
+  const queueLength = await redisClient.llen(imageQueue);
+  console.log(`Queue length: ${queueLength}`);
+
+  if (queueLength === 0) {
+    console.log("No images in the queue, waiting...");
+    res.json({ message: "No images in the queue" });
+    return;
+  }
+
+  const allImages = await redisClient.lrange(imageQueue, 0, -1);
+  console.log(allImages);
+
+  res.json(allImages);
+});
+
+//GET route for getting blur images
+app.get("/blur", async (req, res) => {
+  const imageQueue = "BLUR";
+  console.log("redisWorker start");
+
+  const queueLength = await redisClient.llen(imageQueue);
+  console.log(`Queue length: ${queueLength}`);
+
+  if (queueLength === 0) {
+    console.log("No images in the queue, waiting...");
+    res.json({ message: "No images in the queue" });
+    return;
+  }
+
+  const allImages = await redisClient.lrange(imageQueue, 0, -1);
+  console.log(allImages);
+
+  res.json(allImages);
+});
+
+// app.get("/process-all-local", async (req, res) => {
+//   const response = await axios.get(
+//     "https://be.platform.simplifii.com/api/v1/custom/claim_images"
+//   );
+//   const data = response.data.response.data;
+//   const batchSize = 10;
+//   const batches = [];
+//   for (let i = 0; i < data.length; i += batchSize) {
+//     batches.push(data.slice(i, i + batchSize));
+//   }
+//   const promises = batches.map(async (batch) => {
+//     try {
+//       await Promise.all(
+//         batch.map(async (data) => {
+//           const txt = await converter(data.url);
+//           const score = await checkReadability(txt);
+//           console.log(data.url, score);
+//           const newFolder = score > 30 ? "clear_images" : "blur_images";
+//           const newPath = path.join(newFolder, data.url.split("/").pop());
+
+//           try {
+//             await fs.access(newFolder);
+//           } catch {
+//             await fs.mkdir(newFolder);
+//           }
+
+//           const response = await axios.get(data.url, {
+//             responseType: "arraybuffer",
+//           });
+//           await fs.writeFile(newPath, response.data);
+//         })
+//       );
+//     } catch (error) {
+//       console.log(error);
+//     }
+//   });
+//   await Promise.all(promises);
+//   res.send("success");
+// });
 
 // app.post("/upload-single-local", upload.single("file"), async (req, res) => {
 //   const { url } = req.body;
@@ -209,40 +267,4 @@ app.post("/upload-single-cloud", async (req, res) => {
 //   res.send(batches);
 // });
 
-app.get("/clear", async (req, res) => {
-  const imageQueue = "CLEAR";
-  console.log("redisWorker start");
-
-  const queueLength = await redisClient.llen(imageQueue);
-  console.log(`Queue length: ${queueLength}`);
-
-  if (queueLength === 0) {
-    console.log("No images in the queue, waiting...");
-    res.json({ message: "No images in the queue" });
-    return;
-  }
-
-  const allImages = await redisClient.lrange(imageQueue, 0, -1);
-  console.log(allImages);
-
-  res.json(allImages);
-});
-app.get("/blur", async (req, res) => {
-  const imageQueue = "BLUR";
-  console.log("redisWorker start");
-
-  const queueLength = await redisClient.llen(imageQueue);
-  console.log(`Queue length: ${queueLength}`);
-
-  if (queueLength === 0) {
-    console.log("No images in the queue, waiting...");
-    res.json({ message: "No images in the queue" });
-    return;
-  }
-
-  const allImages = await redisClient.lrange(imageQueue, 0, -1);
-  console.log(allImages);
-
-  res.json(allImages);
-});
 export default app;
