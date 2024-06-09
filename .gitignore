@@ -5,3 +5,4 @@ clear_imgs_local
 CLEAR_LOCAL
 node_modules
 uploads
+.vercel

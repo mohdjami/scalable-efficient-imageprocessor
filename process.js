@@ -6,91 +6,90 @@ import fs from "fs";
 import path from "path";
 import BlurryDetector from "./sharp.js";
 import axios from "axios";
-import { workerData } from "worker_threads";
+// import { workerData } from "worker_threads";
+// export async function processImageBatch(batch) {
+//   try {
+//     const clear_list = "CLEAR";
+//     const blur_list = "BLUR";
+//     console.log(batch, "started");
+//     await Promise.all(
+//       batch.map(async (image) => {
+//         const data = JSON.parse(image);
+//         // const txt = await converter(data.url);
+//         // const score = await checkReadability(txt);
+//         // if (score > 30) {
+//         //   await produce(clear_list, data.url);
+//         // } else await produce(blur_list, data.url);
 
-export async function processImageBatch(batch) {
-  try {
-    const clear_list = "CLEAR";
-    const blur_list = "BLUR";
-    console.log(batch, "started");
-    await Promise.all(
-      batch.map(async (image) => {
-        const data = JSON.parse(image);
-        // const txt = await converter(data.url);
-        // const score = await checkReadability(txt);
-        // if (score > 30) {
-        //   await produce(clear_list, data.url);
-        // } else await produce(blur_list, data.url);
+//         console.log(data.url);
+//         const response = await axios.get(data.url, {
+//           responseType: "arraybuffer",
+//         });
+//         const imageData = Buffer.from(response.data, "binary");
+//         const detector = new BlurryDetector();
+//         const isBlurry = await detector.isImageBlurry(imageData);
+//         if (isBlurry) {
+//           console.log("🔍 Given image seems blurry!");
+//         } else {
+//           console.log("🔍 Given image seems focused!");
+//         }
+//         const newFolder = isBlurry ? "BLUR_LOCAL" : "CLEAR_LOCAL";
+//         const newPath = path.join(newFolder, data.url.split("/").pop());
 
-        console.log(data.url);
-        const response = await axios.get(data.url, {
-          responseType: "arraybuffer",
-        });
-        const imageData = Buffer.from(response.data, "binary");
-        const detector = new BlurryDetector();
-        const isBlurry = await detector.isImageBlurry(imageData);
-        if (isBlurry) {
-          console.log("🔍 Given image seems blurry!");
-        } else {
-          console.log("🔍 Given image seems focused!");
-        }
-        const newFolder = isBlurry ? "BLUR_LOCAL" : "CLEAR_LOCAL";
-        const newPath = path.join(newFolder, data.url.split("/").pop());
+//         try {
+//           console.log(newFolder);
+//           await fs.promises.access(newFolder);
+//         } catch {
+//           await fs.promises.mkdir(newFolder);
+//         }
 
-        try {
-          console.log(newFolder);
-          await fs.promises.access(newFolder);
-        } catch {
-          await fs.promises.mkdir(newFolder);
-        }
+//         // Download the image and save it to the new path
+//         const ress = await axios.get(data.url, {
+//           responseType: "arraybuffer",
+//         });
+//         await fs.promises.writeFile(newPath, ress.data);
+//       })
+//     );
+//   } catch (error) {
+//     console.log(error);
+//   }
+// }
+// export async function processSingleImageLocally(url) {
+//   try {
+//     // const txt = await converter(url);
+//     // const score = await checkReadability(txt);
+//     // const folder = score > 30 ? "CLEAR_LOCAL" : "BLUR_LOCAL";
+//     // upload the image their
+//     console.log(url);
+//     const response = await axios.get(url, { responseType: "arraybuffer" });
+//     const imageData = Buffer.from(response.data, "binary");
+//     const detector = new BlurryDetector();
+//     const isBlurry = await detector.isImageBlurry(imageData);
+//     if (isBlurry) {
+//       console.log("🔍 Given image seems blurry!");
+//     } else {
+//       console.log("🔍 Given image seems focused!");
+//     }
+//     const folder = isBlurry ? "BLUR_LOCAL" : "CLEAR_LOCAL";
+//     const res = await axios.get(url, {
+//       responseType: "arraybuffer",
+//     });
+//     console.log(folder, res.data);
+//     const newPath = path.join(folder, url.split("/").pop());
+//     await fs.writeFile(newPath, res.data);
 
-        // Download the image and save it to the new path
-        const ress = await axios.get(data.url, {
-          responseType: "arraybuffer",
-        });
-        await fs.promises.writeFile(newPath, ress.data);
-      })
-    );
-  } catch (error) {
-    console.log(error);
-  }
-}
-export async function processSingleImageLocally(url) {
-  try {
-    // const txt = await converter(url);
-    // const score = await checkReadability(txt);
-    // const folder = score > 30 ? "CLEAR_LOCAL" : "BLUR_LOCAL";
-    // upload the image their
-    console.log(url);
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    const imageData = Buffer.from(response.data, "binary");
-    const detector = new BlurryDetector();
-    const isBlurry = await detector.isImageBlurry(imageData);
-    if (isBlurry) {
-      console.log("🔍 Given image seems blurry!");
-    } else {
-      console.log("🔍 Given image seems focused!");
-    }
-    const folder = isBlurry ? "BLUR_LOCAL" : "CLEAR_LOCAL";
-    const res = await axios.get(url, {
-      responseType: "arraybuffer",
-    });
-    console.log(folder, res.data);
-    const newPath = path.join(folder, url.split("/").pop());
-    await fs.writeFile(newPath, res.data);
+//     try {
+//       await fs.access(folder);
+//     } catch {
+//       await fs.mkdir(folder);
+//     }
 
-    try {
-      await fs.access(folder);
-    } catch {
-      await fs.mkdir(folder);
-    }
-
-    await fs.writeFile(newPath, response);
-    return true;
-  } catch (error) {
-    console.log(error);
-  }
-}
+//     await fs.writeFile(newPath, response);
+//     return true;
+//   } catch (error) {
+//     console.log(error);
+//   }
+// }
 
 export async function processSingleImage(url) {
   try {
@@ -100,15 +99,48 @@ export async function processSingleImage(url) {
 
     const txt = await converter(url);
     const score = await checkReadability(txt);
-    if (score > 30) {
-      const res = await produce(clear_list, url);
-      console.log(res, "clear");
-    } else await produce(blur_list, url);
+    const pipeline = redisClient.pipeline();
+
+    if (score > 20) {
+      // const res = await produce(clear_list, url);
+      pipeline.rpush("CLEAR", JSON.stringify(url));
+      await pipeline.exec();
+      console.log("clear");
+    } else {
+      // await produce(blur_list, url);
+      pipeline.rpush("BLUR", JSON.stringify(url));
+      await pipeline.exec();
+    }
 
     console.log(url, score);
   } catch (error) {
     console.log(error);
   }
+}
+export async function processImagesUploadRedis(batch) {
+  console.log(batch, "started");
+  await Promise.all(
+    batch.map(async (image) => {
+      try {
+        const data = JSON.parse(image);
+        const txt = await converter(data.url);
+        const score = await checkReadability(txt);
+        const pipeline = redisClient.pipeline();
+        if (score > 20) {
+          pipeline.rpush("CLEAR", JSON.stringify(data.url));
+          await pipeline.exec();
+          console.log("clear");
+        } else {
+          pipeline.rpush("BLUR", JSON.stringify(data.url));
+          console.log("blur");
+          await pipeline.exec();
+        }
+        console.log(data.url, score);
+      } catch (error) {
+        console.log(`Error processing image ${image}: ${error}`);
+      }
+    })
+  );
 }
 
 export async function redisWorker() {
@@ -134,7 +166,7 @@ export async function redisWorker() {
     await pipeline.exec();
 
     // Process the batch of images
-    await processImageBatch(batch);
+    await processImagesUploadRedis(batch);
   }
   return "Images has been processed";
 }
