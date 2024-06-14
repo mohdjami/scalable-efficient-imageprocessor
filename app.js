@@ -4,7 +4,7 @@ import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
 import { redisClient } from "./redis.js";
-import BlurryDetector from "./sharp.js";
+// import BlurryDetector from "./sharp.js";
 import dotenv from "dotenv";
 //use multer to upload images on uploads folder using url
 import multer from "multer";

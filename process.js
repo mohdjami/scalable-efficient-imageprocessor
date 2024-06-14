@@ -4,7 +4,7 @@ import { checkReadability } from "./readability-checker.js";
 import { produce } from "./kafka.js";
 import fs from "fs";
 import path from "path";
-import BlurryDetector from "./sharp.js";
+// import BlurryDetector from "./sharp.js";
 import axios from "axios";
 // import { workerData } from "worker_threads";
 // export async function processImageBatch(batch) {
@@ -26,7 +26,7 @@ import axios from "axios";
 //           responseType: "arraybuffer",
 //         });
 //         const imageData = Buffer.from(response.data, "binary");
-//         const detector = new BlurryDetector();
+const detector = new BlurryDetector();
 //         const isBlurry = await detector.isImageBlurry(imageData);
 //         if (isBlurry) {
 //           console.log("🔍 Given image seems blurry!");

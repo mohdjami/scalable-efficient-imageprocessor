@@ -6,3 +6,4 @@ CLEAR_LOCAL
 node_modules
 uploads
 .vercel
+sharp
