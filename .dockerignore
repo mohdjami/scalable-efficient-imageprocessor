@@ -1,0 +1,11 @@
+.env
+node_modules
+CLEAR_LOACAL
+BLUR_LOCAL
+blur
+clear
+clear_imgs_local
+.vercel
+uploads
+public
+
